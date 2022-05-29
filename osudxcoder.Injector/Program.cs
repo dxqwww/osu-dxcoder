@@ -55,7 +55,7 @@ namespace osudxcoder.Injector
             XLogger.Info($"{Constants.ProcessName} is found!");
             XLogger.System($"Press any key to inject dll into {Constants.ProcessName}");
 
-            Console.ReadKey();
+            Console.ReadKey(true);
             
             XLogger.Message("Starting injection...");
             XLogger.Info($"PID: {targetProcess.Id}");
@@ -76,8 +76,9 @@ namespace osudxcoder.Injector
             process.Inject(typeof(Core.Main).Assembly.Location, "osudxcoder.Core.Main", "DllMain");
 
             XLogger.Info("Successfully injected!");
+            XLogger.System($"Press any key to close this window");
 
-            Console.ReadKey();
+            Console.ReadKey(true);
         }
     }
 }

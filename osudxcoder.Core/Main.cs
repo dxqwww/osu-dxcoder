@@ -48,8 +48,6 @@ namespace osudxcoder.Core
             
             AllocConsole();
 
-            Console.WriteLine(Utils.CliOptions.Verbose);
-            
             XLogger.Message("Loading assemblies...");
             
             OsuAssembly = ModuleDefMD.Load(Utils.GetStablePath());
@@ -94,8 +92,8 @@ namespace osudxcoder.Core
             OsuAssembly.Write(outputFile);
             XLogger.Info($"Written to {outputFile}");
             
-            XLogger.System($"Press any key to kill {Constants.ProcessName}");
-            Console.ReadKey();
+            XLogger.System($"Press any key to kill {Constants.ProcessName} process");
+            Console.ReadKey(true);
             
             Process.GetCurrentProcess().Kill();
         }
