@@ -1,2 +1,2 @@
 # osu-dxcoder
-osu! decryption tool
+A tool to decrypt osu! binaries
