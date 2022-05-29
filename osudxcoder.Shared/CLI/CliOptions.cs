@@ -22,7 +22,7 @@ namespace osudxcoder.Shared
         {
             var helpText = new HelpText
             {
-                Heading = new HeadingInfo("osu!dxcoder", "1.0"),
+                Heading = new HeadingInfo("osu!dxcoder", "1.1"),
                 Copyright = new CopyrightInfo("dxqwww", 2022),
                 AdditionalNewLineAfterOption = false,
                 AddDashesToOption = true,
