@@ -2,11 +2,11 @@ using System;
 using CommandLine;
 using CommandLine.Text;
 
-namespace osudxcoder.Shared
+namespace osudxcoder.Shared.CLI
 {
     public class CliOptions
     {
-        [Value(0)]
+        [Value(0, Required = true)]
         public string Input { get; set; }
         
         [Option('o', "output", HelpText = "Path of the output file")]
@@ -15,14 +15,23 @@ namespace osudxcoder.Shared
         [Option('v', "verbose", HelpText = "Prints more output")]
         public bool Verbose { get; set; }
 
-        [Option('t', "types-only", HelpText = "Only types will be renamed without applying attributes to them")]
-        public bool TypesOnly { get; set; }
+        [Option("attributes", HelpText = "Applies attributes with original assembly name to decrypted assemblies")]
+        public bool EnableAttributes { get; set; }
+        
+        [Option("string-refs", HelpText = "Decrypts strings references")]
+        public bool StringsRefFix { get; set; }
+        
+        [Option("type-refs", HelpText = "Decrypts types references")]
+        public bool TypesRefFix { get; set; }
+        
+        [Option("string-fix", HelpText = "Decrypts all strings in assembly")]
+        public bool StringFix { get; set; }
         
         public string GetHelp()
         {
             var helpText = new HelpText
             {
-                Heading = new HeadingInfo("osu!dxcoder", "1.1"),
+                Heading = new HeadingInfo("osu!dxcoder", "1.3"),
                 Copyright = new CopyrightInfo("dxqwww", 2022),
                 AdditionalNewLineAfterOption = false,
                 AddDashesToOption = true,

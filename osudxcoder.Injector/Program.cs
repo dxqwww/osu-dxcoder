@@ -2,12 +2,13 @@
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using CommandLine;
 using HoLLy.ManagedInjector;
 using osudxcoder.Shared;
+using osudxcoder.Shared.CLI;
 using osudxcoder.Shared.Logger;
-
 
 namespace osudxcoder.Injector
 {
@@ -22,12 +23,15 @@ namespace osudxcoder.Injector
                     ArgsHelper.SaveArgsToFile(args);
                 });
 
+            if (Utils.CliOptions is null)
+                return;
+            
             if (string.IsNullOrWhiteSpace(Utils.CliOptions.Input))
             {
                 Console.WriteLine(Utils.CliOptions.GetHelp());
                 return;
             }
-
+            
             XLogger.Message($"Trying to find {Constants.ProcessName}...");
             
             var targetProcess = Process.GetProcessesByName(Constants.ProcessName).FirstOrDefault();

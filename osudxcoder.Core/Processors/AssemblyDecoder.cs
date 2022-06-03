@@ -10,42 +10,58 @@ using MethodImplAttributes = dnlib.DotNet.MethodImplAttributes;
 
 namespace osudxcoder.Core.Processors
 {
+    public class DecodedAssembly<T>
+    {
+        public string ObfuscatedName { get; }
+        public string CleanName { get; }
+        public T Member { get; }
+
+        public DecodedAssembly(string obfuscatedName, string cleanName, T member)
+        {
+            ObfuscatedName = obfuscatedName;
+            CleanName = cleanName;
+            Member = member;
+        }
+    }
+
     public class AssemblyDecoder : IProcessor
     {
-        public readonly Dictionary<string, string> SourceMap = new();
+        public readonly List<DecodedAssembly<object>> DecodedAssemblyCache;
 
-        private readonly ModuleDef TargetAssembly;
-        private readonly Func<string, string> Decrypt;
+        private readonly ModuleDef _targetModule;
+        private readonly Func<string, string> _decrypt;
 
-        private MethodDef DxqObfustacedCtor;
+        private MethodDef _dxqObfuscatedCtor;
 
-        public AssemblyDecoder(ModuleDef assembly, Func<string, string> decryptFunc)
+        public AssemblyDecoder(ModuleDef module, Func<string, string> decryptMethod)
         {
-            TargetAssembly = assembly;
-            Decrypt = decryptFunc;
+            DecodedAssemblyCache = new List<DecodedAssembly<object>>();
+            
+            _targetModule = module;
+            _decrypt = decryptMethod;
         }
 
         public void Process()
         {
-            if (!Utils.CliOptions.TypesOnly)
+            if (Utils.CliOptions.EnableAttributes)
             {
-                var attrRefType = TargetAssembly.CorLibTypes.GetTypeRef("System", "Attribute");
-                var dxqObfTypeDef = TargetAssembly.FindNormal("dxqObfuscated");
+                var attrRefType = _targetModule.CorLibTypes.GetTypeRef("System", "Attribute");
+                var dxqObfTypeDef = _targetModule.FindNormal("dxqObfuscated");
                 if (dxqObfTypeDef is null)
                 {
                     dxqObfTypeDef = new TypeDefUser("", "dxqObfuscated", attrRefType);
 
-                    TargetAssembly.Types.Add(dxqObfTypeDef);
+                    _targetModule.Types.Add(dxqObfTypeDef);
                 }
 
-                DxqObfustacedCtor = dxqObfTypeDef.FindInstanceConstructors()
+                _dxqObfuscatedCtor = dxqObfTypeDef.FindInstanceConstructors()
                     .FirstOrDefault(x =>
-                        x.Parameters.Count == 1 && x.Parameters[0].Type == TargetAssembly.CorLibTypes.String);
+                        x.Parameters.Count == 1 && x.Parameters[0].Type == _targetModule.CorLibTypes.String);
 
-                if (DxqObfustacedCtor is null)
+                if (_dxqObfuscatedCtor is null)
                 {
-                    DxqObfustacedCtor = new MethodDefUser(".ctor",
-                        MethodSig.CreateInstance(TargetAssembly.CorLibTypes.Void, TargetAssembly.CorLibTypes.String),
+                    _dxqObfuscatedCtor = new MethodDefUser(".ctor",
+                        MethodSig.CreateInstance(_targetModule.CorLibTypes.Void, _targetModule.CorLibTypes.String),
                         MethodImplAttributes.IL,
                         MethodAttributes.FamANDAssem | MethodAttributes.Family | MethodAttributes.HideBySig |
                         MethodAttributes.SpecialName | MethodAttributes.RTSpecialName)
@@ -56,21 +72,21 @@ namespace osudxcoder.Core.Processors
                         }
                     };
                     
-                    DxqObfustacedCtor.Body.Instructions.Add(OpCodes.Ldarg_0.ToInstruction());
-                    DxqObfustacedCtor.Body.Instructions.Add(OpCodes.Call.ToInstruction(new MemberRefUser(TargetAssembly,
-                        ".ctor", MethodSig.CreateInstance(TargetAssembly.CorLibTypes.Void), attrRefType)));
-                    DxqObfustacedCtor.Body.Instructions.Add(OpCodes.Ret.ToInstruction());
+                    _dxqObfuscatedCtor.Body.Instructions.Add(OpCodes.Ldarg_0.ToInstruction());
+                    _dxqObfuscatedCtor.Body.Instructions.Add(OpCodes.Call.ToInstruction(new MemberRefUser(_targetModule,
+                        ".ctor", MethodSig.CreateInstance(_targetModule.CorLibTypes.Void), attrRefType)));
+                    _dxqObfuscatedCtor.Body.Instructions.Add(OpCodes.Ret.ToInstruction());
 
-                    dxqObfTypeDef.Methods.Add(DxqObfustacedCtor);
+                    dxqObfTypeDef.Methods.Add(_dxqObfuscatedCtor);
                 }
                 
-                var customAttribute = new CustomAttribute(DxqObfustacedCtor);
-                customAttribute.ConstructorArguments.Add(new CAArgument(TargetAssembly.CorLibTypes.String,
+                var customAttribute = new CustomAttribute(_dxqObfuscatedCtor);
+                customAttribute.ConstructorArguments.Add(new CAArgument(_targetModule.CorLibTypes.String,
                     "dxqObfuscatedName"));
-                TargetAssembly.CustomAttributes.Add(customAttribute);
+                _targetModule.CustomAttributes.Add(customAttribute);
             }
             
-            DecodeRecursive(TargetAssembly.Types);
+            DecodeRecursive(_targetModule.Types);
         }
 
         private void DecodeRecursive(IEnumerable<IFullName> members)
@@ -122,21 +138,26 @@ namespace osudxcoder.Core.Processors
             if (!Constants.RegexObfuscated.IsMatch(param.Name))
                 return;
 
-            var cleanName = Decrypt(param.Name);
-            
             if (Utils.CliOptions.Verbose)
-                XLogger.Message($"Decrypted {cleanName}!");
+                XLogger.Message($"Decrypting assembly {param.Name}!");
             
-            if (param is IHasCustomAttribute p && !Utils.CliOptions.TypesOnly)
+            var cleanName = _decrypt(param.Name);
+            
+            if (string.IsNullOrWhiteSpace(cleanName))
+                return;
+
+            DecodedAssemblyCache.Add(new DecodedAssembly<object>(param.Name, cleanName, param));
+
+            if (param is IHasCustomAttribute p && Utils.CliOptions.EnableAttributes)
             {
-                var customAttribute = new CustomAttribute(DxqObfustacedCtor);
+                var customAttribute = new CustomAttribute(_dxqObfuscatedCtor);
 
                 if (p.CustomAttributes.All(x => x.TypeFullName != "dxqObfuscated"))
                 {
                     if (Utils.CliOptions.Verbose)
                         XLogger.Message($"Applying attribute {param.Name}...");
                     
-                    customAttribute.ConstructorArguments.Add(new CAArgument(TargetAssembly.CorLibTypes.String,
+                    customAttribute.ConstructorArguments.Add(new CAArgument(_targetModule.CorLibTypes.String,
                         param.Name));
                     p.CustomAttributes.Add(customAttribute);
                 }
@@ -158,7 +179,16 @@ namespace osudxcoder.Core.Processors
             if (!Constants.RegexObfuscated.IsMatch(param.Name))
                 return;
 
-            var cleanName = Decrypt(param.Name);
+            if (Utils.CliOptions.Verbose)
+                XLogger.Message($"Decrypting parameter {param.Name}...");
+            
+            var cleanName = _decrypt(param.Name);
+
+            if (string.IsNullOrWhiteSpace(cleanName))
+                return;
+            
+            DecodedAssemblyCache.Add(new DecodedAssembly<object>(param.Name, cleanName, param));
+            
             param.Name = cleanName;
         }
     }
