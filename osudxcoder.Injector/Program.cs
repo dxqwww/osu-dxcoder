@@ -1,9 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
-using System.Reflection;
-using System.Threading;
 using CommandLine;
 using HoLLy.ManagedInjector;
 using osudxcoder.Shared;
@@ -69,12 +66,12 @@ namespace osudxcoder.Injector
             var processStatus = process.GetStatus();
             Debug.Assert(processStatus == ProcessStatus.Ok);
 
-            XLogger.Info($"Process status: {Enum.GetName(typeof(ProcessStatus), processStatus)}");
+            XLogger.Debug($"Process status: {Enum.GetName(typeof(ProcessStatus), processStatus)}");
             
             var processArch = process.GetArchitecture();
             Debug.Assert(processArch == ProcessArchitecture.NetFrameworkV4);
             
-            XLogger.Info($"Process architecture: {Enum.GetName(typeof(ProcessArchitecture), processArch)}");
+            XLogger.Debug($"Process architecture: {Enum.GetName(typeof(ProcessArchitecture), processArch)}");
             
             XLogger.Message("Injecting...");
             process.Inject(typeof(Core.Main).Assembly.Location, "osudxcoder.Core.Main", "DllMain");

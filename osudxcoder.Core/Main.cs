@@ -77,14 +77,14 @@ namespace osudxcoder.Core
 
             if (Utils.CliOptions.TypesRefFix)
             {
-                XLogger.Message("Decrypting assembly references...");
+                XLogger.Message("Updating assembly references...");
                 var assemblyReferenceUpdater = new AssemblyReferenceUpdater(OsuModule, assemblyDecoder.DecodedAssemblyCache);
                 assemblyReferenceUpdater.Process();
             }
 
             if (Utils.CliOptions.StringsRefFix)
             {
-                XLogger.Message("Decrypting strings references...");
+                XLogger.Message("Updating strings references...");
                 var stringReferenceUpdater = new StringReferenceUpdater(OsuModule, assemblyDecoder.DecodedAssemblyCache);
                 stringReferenceUpdater.Process();
             }
