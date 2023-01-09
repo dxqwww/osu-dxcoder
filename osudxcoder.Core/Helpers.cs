@@ -4,6 +4,9 @@ using System.Linq.Expressions;
 using System.Reflection;
 using dnlib.DotNet;
 using dnlib.DotNet.Emit;
+using EazDecodeLib;
+using osudxcoder.Shared;
+using osudxcoder.Shared.Logger;
 
 namespace osudxcoder.Core
 {
@@ -12,9 +15,22 @@ namespace osudxcoder.Core
         public static Func<string, string> GetAssemblyDecryptMethod(Assembly wAssembly)
         {
             var decryptMethod = wAssembly.GetType("A.B").GetMethod("X");
-            
+
             if (decryptMethod is null)
-                throw new Exception("Couldn't find method for decrypt symbols!");
+            {
+                XLogger.Error("Couldn't find method for decrypt symbols!");
+                XLogger.Debug("Trying to use legacy decrypt method...");
+
+                if (string.IsNullOrEmpty(Utils.CliOptions.OsuVersion))
+                {
+                    XLogger.Error("--osu-version should be supplied!");
+                    throw new Exception();
+                }
+                
+                var cryptoHelper = new CryptoHelper($"3f21fioh321fip231-{Utils.CliOptions.OsuVersion}");
+
+                return cryptoHelper.Decrypt;
+            }
 
             var decryptParam = Expression.Parameter(typeof(string));
             var decryptCall = Expression.Call(null, decryptMethod, decryptParam);

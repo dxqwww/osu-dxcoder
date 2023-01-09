@@ -15,6 +15,9 @@ namespace osudxcoder.Shared.CLI
         [Option('v', "verbose", HelpText = "Prints more output")]
         public bool Verbose { get; set; }
 
+        [Option("osu-version", HelpText = "Version of osu!")]
+        public string OsuVersion { get; set; }
+        
         [Option("attributes", HelpText = "Applies attributes with original assembly name to decrypted assemblies")]
         public bool EnableAttributes { get; set; }
         
